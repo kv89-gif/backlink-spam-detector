@@ -1,8 +1,8 @@
+
 import pandas as pd
 import re
 from urllib.parse import urlparse
 
-# Known shorteners and suspicious TLDs
 SHORTENERS = {'bit.ly', 'goo.gl', 't.co', 'tinyurl.com', 'ow.ly', 'buff.ly'}
 SUSPICIOUS_TLDS = {'xyz', 'gq', 'cf', 'tk', 'ml', 'buzz', 'loan', 'click'}
 
@@ -74,6 +74,12 @@ def extract_enhanced_features(df, model_feature_names=None):
         except:
             return 0
 
+    def is_generic_profile_path(url):
+        try:
+            return 1 if any(p in str(url).lower() for p in ['/profile/', '/user/', '/people/', '/member/']) else 0
+        except:
+            return 0
+
     # Start transformation
     df['url'] = df.iloc[:, 0].apply(normalize_url)
     df['domain'] = df['url'].apply(lambda x: urlparse(x).netloc)
@@ -87,11 +93,12 @@ def extract_enhanced_features(df, model_feature_names=None):
     df['is_shortener'] = df['domain'].apply(is_shortener)
     df['has_ref_param'] = df['url'].apply(has_ref_param)
     df['is_suspicious_tld'] = df['tld'].apply(is_suspicious_tld)
+    df['is_generic_profile_path'] = df['url'].apply(is_generic_profile_path)
 
     # One-hot encode TLDs
     df = pd.get_dummies(df, columns=['tld'], drop_first=True)
 
-    # Ensure all expected model features exist
+    # Align with model features
     if model_feature_names is not None:
         existing_cols = set(df.columns)
         for col in model_feature_names:
