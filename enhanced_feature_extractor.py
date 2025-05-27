@@ -3,24 +3,79 @@ import pandas as pd
 import re
 from urllib.parse import urlparse
 
+# Known shorteners and suspicious TLDs
 SHORTENERS = {'bit.ly', 'goo.gl', 't.co', 'tinyurl.com', 'ow.ly', 'buff.ly'}
 SUSPICIOUS_TLDS = {'xyz', 'gq', 'cf', 'tk', 'ml', 'buzz', 'loan', 'click'}
 
 def extract_enhanced_features(df, model_feature_names=None):
     def normalize_url(url):
-        return f"https://{url}" if not str(url).startswith(('http://', 'https://')) else url
+        try:
+            return f"https://{url}" if not str(url).startswith(('http://', 'https://')) else str(url)
+        except:
+            return "https://unknown"
 
-    def is_ip(domain): return 1 if re.fullmatch(r'\d{1,3}(?:\.\d{1,3}){3}', domain) else 0
-    def domain_length(domain): return len(domain)
-    def contains_numbers(domain): return 1 if re.search(r'\d', domain) else 0
-    def get_tld(domain): parts = domain.split('.'); return parts[-1] if len(parts) > 1 else 'unknown'
-    def path_depth(url): return urlparse(url).path.count('/')
-    def has_keywords(url): return 1 if any(k in url.lower() for k in ['free', 'casino', 'loan', 'bonus']) else 0
-    def cyrillic_in_url(url): return 1 if re.search(r'[\u0400-\u04FF]', url) else 0
-    def is_shortener(domain): return 1 if domain in SHORTENERS else 0
-    def has_ref_param(URL): return 1 if any(k in str(url).lower() for k in ['ref=', 'utm_']) else 0
-    def is_suspicious_tld(tld): return 1 if tld in SUSPICIOUS_TLDS else 0
+    def is_ip(domain):
+        try:
+            return 1 if re.fullmatch(r'\d{1,3}(?:\.\d{1,3}){3}', domain) else 0
+        except:
+            return 0
 
+    def domain_length(domain):
+        try:
+            return len(domain)
+        except:
+            return 0
+
+    def contains_numbers(domain):
+        try:
+            return 1 if re.search(r'\d', domain) else 0
+        except:
+            return 0
+
+    def get_tld(domain):
+        try:
+            parts = domain.split('.')
+            return parts[-1] if len(parts) > 1 else 'unknown'
+        except:
+            return 'unknown'
+
+    def path_depth(url):
+        try:
+            return urlparse(url).path.count('/')
+        except:
+            return 0
+
+    def has_keywords(url):
+        try:
+            return 1 if any(k in str(url).lower() for k in ['free', 'casino', 'loan', 'bonus']) else 0
+        except:
+            return 0
+
+    def cyrillic_in_url(url):
+        try:
+            return 1 if re.search(r'[\u0400-\u04FF]', str(url)) else 0
+        except:
+            return 0
+
+    def is_shortener(domain):
+        try:
+            return 1 if domain in SHORTENERS else 0
+        except:
+            return 0
+
+    def has_ref_param(url):
+        try:
+            return 1 if any(k in str(url).lower() for k in ['ref=', 'utm_']) else 0
+        except:
+            return 0
+
+    def is_suspicious_tld(tld):
+        try:
+            return 1 if tld in SUSPICIOUS_TLDS else 0
+        except:
+            return 0
+
+    # Start transformation
     df['url'] = df.iloc[:, 0].apply(normalize_url)
     df['domain'] = df['url'].apply(lambda x: urlparse(x).netloc)
     df['is_ip'] = df['domain'].apply(is_ip)
@@ -34,8 +89,10 @@ def extract_enhanced_features(df, model_feature_names=None):
     df['has_ref_param'] = df['url'].apply(has_ref_param)
     df['is_suspicious_tld'] = df['tld'].apply(is_suspicious_tld)
 
+    # One-hot encode TLDs
     df = pd.get_dummies(df, columns=['tld'], drop_first=True)
 
+    # Ensure all model columns exist
     if model_feature_names:
         for col in model_feature_names:
             if col not in df.columns:
