@@ -18,7 +18,7 @@ def extract_enhanced_features(df, model_feature_names=None):
     def has_keywords(url): return 1 if any(k in url.lower() for k in ['free', 'casino', 'loan', 'bonus']) else 0
     def cyrillic_in_url(url): return 1 if re.search(r'[\u0400-\u04FF]', url) else 0
     def is_shortener(domain): return 1 if domain in SHORTENERS else 0
-    def has_ref_param(url): return 1 if any(k in url.lower() for k in ['ref=', 'utm_']) else 0
+    def has_ref_param(URL): return 1 if any(k in str(url).lower() for k in ['ref=', 'utm_']) else 0
     def is_suspicious_tld(tld): return 1 if tld in SUSPICIOUS_TLDS else 0
 
     df['url'] = df.iloc[:, 0].apply(normalize_url)
