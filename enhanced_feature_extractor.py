@@ -1,4 +1,3 @@
-
 import pandas as pd
 import re
 from urllib.parse import urlparse
@@ -92,11 +91,12 @@ def extract_enhanced_features(df, model_feature_names=None):
     # One-hot encode TLDs
     df = pd.get_dummies(df, columns=['tld'], drop_first=True)
 
-    # Ensure all model columns exist
-    if model_feature_names:
+    # Ensure all expected model features exist
+    if model_feature_names is not None:
+        existing_cols = set(df.columns)
         for col in model_feature_names:
-            if col not in df.columns:
+            if col not in existing_cols:
                 df[col] = 0
-        df = df[model_feature_names]
+        df = df[model_feature_names].copy()
 
     return df
